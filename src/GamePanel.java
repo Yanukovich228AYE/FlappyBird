@@ -35,12 +35,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 loadImg("resources\\Pipe\\pipeMiddleLow.png"),
                 loadImg("resources\\Pipe\\pipeLow.png")
         };
+        int pipeWidth = pipeFrames[0].getWidth(null);
         this.pipes = new Pipe[] {
-                new Pipe(getWidth(), 0, pipeFrames[0].getWidth(null), getHeight(), 0),
-                new Pipe(getWidth(), 0, pipeFrames[1].getWidth(null), getHeight(), 1),
-                new Pipe(getWidth(), 0, pipeFrames[2].getWidth(null), getHeight(), 2),
-                new Pipe(getWidth(), 0, pipeFrames[3].getWidth(null), getHeight(), 3),
-                new Pipe(getWidth(), 0, pipeFrames[4].getWidth(null), getHeight(), 4)
+                new Pipe(getWidth(), pipeWidth, 0),
+                new Pipe(getWidth(), pipeWidth, 1),
+                new Pipe(getWidth(), pipeWidth, 2),
+                new Pipe(getWidth(), pipeWidth, 3),
+                new Pipe(getWidth(), pipeWidth, 4)
         };
         this.ground1 = loadImg("resources\\Ground\\ground.png");
         this.ground2 = loadImg("resources\\Ground\\ground.png");
@@ -79,9 +80,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             this.birdY = getHeight()/2-birdFrames[0].getHeight(null)/2;
             this.birdFrame = 0;
             this.pipeFrame = 0;
+
             for (Pipe pipe : pipes) {
                 pipe.setX(getWidth());
-                pipe.setHeight(getHeight() - ground1.getHeight(null));
+                pipe.setHeight1(pipe.getY2()-pipe.distance);
+                pipe.setHeight2(getHeight()-pipe.getHeight1()-pipe.distance);
                 pipe.setActive(false);
             }
             this.initialized = true;
@@ -98,11 +101,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         g.drawImage(birdFrames[birdFrame], getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null), null);
         g.drawRect(getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null));
 
-        //g.drawImage(pipeFrames[pipeFrame], pipeX, 0, pipeFrames[pipeFrame].getWidth(null), getHeight(), null);
         for (Pipe pipe : pipes) {
             if (pipe.active) {
-                g.drawImage(pipeFrames[pipe.getFrameIndex()], pipe.getX(), pipe.getY(), pipe.getWidth(), pipe.getHeight(), null);
-                g.drawRect(pipe.getX(), pipe.getY(), pipe.getWidth(), pipe.getHeight());
+                g.drawImage(pipeFrames[pipe.getFrameIndex()], pipe.getX(), pipe.getY1(), pipe.getWidth(), getHeight(), null);
+                g.drawRect(pipe.getX(), pipe.getY1(), pipe.getWidth(), pipe.getHeight1()); // rect 1
+                g.drawRect(pipe.getX(), pipe.getY2(), pipe.getWidth(), pipe.getHeight2()); // rect 2
             }
         }
 
@@ -158,7 +161,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 if (randPipe != lastSpawnedPipe && !pipes[randPipe].active) { // check if the pipe is already spawned
                     pipes[randPipe].setActive(true);
                     lastSpawnedPipe = randPipe;
-                    System.out.println("Pipe spawned: " + lastSpawnedPipe);
+                    System.out.println("Pipe activated: " + lastSpawnedPipe);
                     break;
                 }
             }
