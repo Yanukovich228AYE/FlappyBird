@@ -174,6 +174,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (birdY >= getHeight()-birdFrames[birdFrame].getHeight(null)-ground1.getHeight(null)) {
             birdY = getHeight() - birdFrames[birdFrame].getHeight(null) - ground1.getHeight(null);
             birdVelocity = 0;
+            timer.stop();
         }
 
         // prevent bird from going out of the top of the screen\
