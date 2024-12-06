@@ -98,14 +98,17 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 //        g.drawImage(bg2, x2, 0, getWidth(), getHeight(), null);
 
         // draw bird
+        Rectangle birdRect = new Rectangle(getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null));
         g.drawImage(birdFrames[birdFrame], getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null), null);
-        g.drawRect(getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null));
+        //g.drawRect(getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null));
 
         for (Pipe pipe : pipes) {
             if (pipe.active) {
                 g.drawImage(pipeFrames[pipe.getFrameIndex()], pipe.getX(), pipe.getY1(), pipe.getWidth(), getHeight(), null);
-                g.drawRect(pipe.getX(), pipe.getY1(), pipe.getWidth(), pipe.getHeight1()); // rect 1
-                g.drawRect(pipe.getX(), pipe.getY2(), pipe.getWidth(), pipe.getHeight2()); // rect 2
+                //g.drawRect(pipe.getX(), pipe.getY1(), pipe.getWidth(), pipe.getHeight1()); // rect 1
+                //g.drawRect(pipe.getX(), pipe.getY2(), pipe.getWidth(), pipe.getHeight2()); // rect 2
+                if (birdRect.intersects(pipe.getUpper()) || birdRect.intersects(pipe.getLower())) // check bird intersection with pipe
+                    timer.stop();
             }
         }
 
