@@ -33,6 +33,8 @@ public class Pipe {
     public int getHeight1() { return this.height1; }
     public int getHeight2() { return this.height2; }
     public int getFrameIndex() { return this.frameIndex; }
+    public Rectangle getUpper() { return new Rectangle(this.x, this.y1, this.width, this.height1); }
+    public Rectangle getLower() { return new Rectangle(this.x, this.y2, this.width, this.height2); }
 
     public void setY1(int y1) { this.y1 = y1; }
     public void setY2(int y2) { this.y2 = y2; }
