@@ -40,24 +40,35 @@ public class Game {
     }
 
     private JPanel createMenuPanel() {
-        JPanel menuPanel = new JPanel();
-        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
-        menuPanel.setBackground(Color.gray);
+        JPanel menuPanel = new JPanel(new GridBagLayout()); // Use GridBagLayout for centering
+        menuPanel.setBackground(Color.GRAY);
 
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10); // Add padding around components
+        gbc.gridx = 0; // Center horizontally
+        gbc.gridy = 0; // Position the title first
+        gbc.anchor = GridBagConstraints.CENTER; // Ensure components are centered
+
+        // Title
         JLabel title = new JLabel("Flappy Bird");
         title.setFont(new Font("Arial", Font.BOLD, 48));
-        title.setAlignmentX(Component.CENTER_ALIGNMENT);
-        menuPanel.add(title);
-        menuPanel.add(Box.createRigidArea(new  Dimension(0, 50))); // space between title and other components
+        menuPanel.add(title, gbc);
 
+        // Spacing between title and button
+        gbc.gridy++;
+        menuPanel.add(Box.createRigidArea(new Dimension(0, 50)), gbc);
+
+        // Play button
+        gbc.gridy++;
         JButton startButton = getjButton();
-        menuPanel.add(startButton);
+        menuPanel.add(startButton, gbc);
 
         return menuPanel;
     }
 
+
     private JButton getjButton() {
-        JButton startButton = new JButton("Start");
+        JButton startButton = new JButton("PLAY");
         startButton.setBackground(Color.WHITE);
         startButton.setFont(new Font("Arial", Font.PLAIN, 24));
         startButton.setAlignmentX(Component.CENTER_ALIGNMENT);

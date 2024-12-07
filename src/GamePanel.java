@@ -122,19 +122,20 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             }
         }
 
-
-
         g.drawImage(ground1, x1, getHeight()-ground1.getHeight(null), getWidth(), ground1.getHeight(null), null);
         g.drawImage(ground2, x2, getHeight()-ground2.getHeight(null), getWidth(), ground2.getHeight(null), null);
     }
 
     @Override
     public void actionPerformed(ActionEvent e) { // method that is responsible for updating the game periodically (updating frames)
-        int gravity = 1;
+        int gravity = 2;
 
         if (isRunning) {
             birdVelocity += gravity;
             birdY += birdVelocity;
+        } else {
+            pointCount = 0;
+            game.points.setText("" + pointCount);
         }
 
         // updates every active pipe
@@ -231,6 +232,14 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         timer.start();
     }
 
+    public Pipe getClosestPipe() {
+        Pipe closest = pipes[0];
+        for (Pipe pipe : pipes)
+            if (pipe.getX() < closest.getX())
+                closest = pipe;
+        return closest;
+    }
+
     @Override
     public void addNotify() {
         super.addNotify(); // it notifies the game that this is a part of the code for using requestFocus();
@@ -245,7 +254,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (e.getKeyCode() == KeyEvent.VK_SPACE) {
             if (!isRunning)
                 isRunning = true;
-            birdVelocity = -10;
+            birdVelocity = -15;
         }
     }
 
