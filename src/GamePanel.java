@@ -8,12 +8,13 @@ import java.io.FileNotFoundException;
 import java.net.URL;
 
 public class GamePanel extends JPanel implements ActionListener, KeyListener {
+    Game game;
     Timer timer;
     private int  birdY, x1, x2; // x1, x2 used for animating the movement of the background and ground
     private int birdFrame, pipeFrame, lastSpawnedPipe;
     private long lastAnimationTime, lastPipeSpawnedTime; // saving last frame change time
-    private int birdVelocity = 0;
-    private boolean initialized = false; // solving the problem with background movement in the start of the game
+    private int birdVelocity = 0, pointCount = 0;
+    private boolean initialized = false, isRunning = false; // solving the problem with background movement in the start of the game
 
     private final Image[] birdFrames; // bird frames for animation
     private final Image[] pipeFrames; // pipe images
@@ -21,7 +22,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private final Image bg1, bg2; // 2 equal backgrounds for movement animation
     private final Image ground1, ground2; // 2 equal grounds for movement animation
 
-    public GamePanel() {
+    public GamePanel(Game game) {
+        this.game = game;
         timer = new Timer(20, this); // actionPerformed method will be responsible for updating panel every 20ms
         this.birdFrames = new Image[] {
                 loadImg("resources\\Bird\\birdRedUp.png"),
@@ -102,15 +104,25 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         g.drawImage(birdFrames[birdFrame], getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null), null);
         //g.drawRect(getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null));
 
+
+
         for (Pipe pipe : pipes) {
             if (pipe.active) {
                 g.drawImage(pipeFrames[pipe.getFrameIndex()], pipe.getX(), pipe.getY1(), pipe.getWidth(), getHeight(), null);
                 //g.drawRect(pipe.getX(), pipe.getY1(), pipe.getWidth(), pipe.getHeight1()); // rect 1
                 //g.drawRect(pipe.getX(), pipe.getY2(), pipe.getWidth(), pipe.getHeight2()); // rect 2
-                if (birdRect.intersects(pipe.getUpper()) || birdRect.intersects(pipe.getLower()))
+                if (birdRect.intersects(pipe.getUpper()) || birdRect.intersects(pipe.getLower())) { // check bird intersection with pipe
+                    isRunning = false;
                     timer.stop();
+                    game.showMenu();
+                } else if (birdRect.intersects(pipe.getX()+pipe.getWidth(), pipe.getHeight1(), pipe.getX()+pipe.getWidth(), pipe.getY2()) && !pipe.pointAwarded) { // if intersects the line right after the pipe +1 point
+                    game.points.setText("" + ++pointCount);
+                    pipe.pointAwarded = true;
+                }
             }
         }
+
+
 
         g.drawImage(ground1, x1, getHeight()-ground1.getHeight(null), getWidth(), ground1.getHeight(null), null);
         g.drawImage(ground2, x2, getHeight()-ground2.getHeight(null), getWidth(), ground2.getHeight(null), null);
@@ -119,8 +131,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     @Override
     public void actionPerformed(ActionEvent e) { // method that is responsible for updating the game periodically (updating frames)
         int gravity = 1;
-        birdVelocity += gravity;
-        birdY += birdVelocity;
+
+        if (isRunning) {
+            birdVelocity += gravity;
+            birdY += birdVelocity;
+        }
 
         // updates every active pipe
         long gameVelocity = 4;
@@ -129,6 +144,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 pipe.moveLeft((int) gameVelocity);
                 if (pipe.getX() <= -pipe.getWidth()) { // if pipe is out of the screen
                     pipe.setActive(false); // deactivate pipe
+                    pipe.pointAwarded = false;
                     pipe.setX(getWidth()); // reset position
                     System.out.println("Pipe deactivated: " + pipe);
                 }
@@ -157,7 +173,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         }
 
         // Spawn new random pipe every specified interval of time
-        if (currentTime - lastPipeSpawnedTime > (gameVelocity *1000- gameVelocity *350)) {
+        if (currentTime - lastPipeSpawnedTime > (gameVelocity *1000- gameVelocity *350) && isRunning) {
             int randPipe;
             while (true) {
                 randPipe = (int) (Math.random() * pipes.length); // get random pipe
@@ -174,6 +190,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (birdY >= getHeight()-birdFrames[birdFrame].getHeight(null)-ground1.getHeight(null)) {
             birdY = getHeight() - birdFrames[birdFrame].getHeight(null) - ground1.getHeight(null);
             birdVelocity = 0;
+            isRunning = false;
             timer.stop();
         }
 
@@ -184,6 +201,34 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         }
 
         repaint();
+    }
+
+    public void restartGame() {
+        // Reset bird position and velocity
+        this.birdY = getHeight() / 2 - birdFrames[0].getHeight(null) / 2;
+        this.birdVelocity = 0;
+
+        // Reset pipes
+        for (Pipe pipe : pipes) {
+            pipe.setX(getWidth());
+            pipe.setActive(false);
+        }
+
+        // Reset movement variables
+        this.x1 = 0;
+        this.x2 = getWidth();
+        this.birdFrame = 0;
+        this.pipeFrame = 0;
+        this.lastSpawnedPipe = 0;
+        this.lastAnimationTime = System.currentTimeMillis();
+        this.lastPipeSpawnedTime = System.currentTimeMillis();
+
+        // Re-initialize game state
+        this.isRunning = false;
+        this.initialized = false;
+
+        // Start the timer again
+        timer.start();
     }
 
     @Override
@@ -198,6 +243,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     @Override
     public void keyPressed(KeyEvent e) { // reacts when specified key is pressed
         if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+            if (!isRunning)
+                isRunning = true;
             birdVelocity = -10;
         }
     }
