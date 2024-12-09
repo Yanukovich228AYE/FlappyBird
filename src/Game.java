@@ -3,14 +3,18 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class Game {
+public class Game implements ActionListener {
+    Timer timer;
     JFrame window;
     JPanel cardPanel; // Panel with card layout
     CardLayout cardLayout; // card layout for switching screens
     GamePanel gamePanel; // game panel
     JLabel points;
 
+    JComboBox<String> themeDropDownMenu;
+
     public Game() {
+        timer = new Timer(20, this);
         window = new JFrame("Flappy Bird");
         window.setSize(800, 800);
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -19,6 +23,9 @@ public class Game {
 
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
+
+        String[] themes = {"LIGHT", "DARK", "HELL"};
+        JComboBox<String> themeDropDownMenu = new JComboBox<String>(themes);
 
         JPanel menuPanel = createMenuPanel(); // TODO
 
@@ -37,6 +44,8 @@ public class Game {
         window.add(cardPanel);
 
         window.setVisible(true);
+
+        timer.start();
     }
 
     private JPanel createMenuPanel() {
@@ -63,9 +72,18 @@ public class Game {
         JButton startButton = getjButton();
         menuPanel.add(startButton, gbc);
 
+        // Game theme drop down menu
+        gbc.gridy++;
+        themeDropDownMenu.setVisible(true);
+        menuPanel.add(themeDropDownMenu, gbc);
+
         return menuPanel;
     }
 
+    @Override
+    public void actionPerformed(ActionEvent e) {
+
+    }
 
     private JButton getjButton() {
         JButton startButton = new JButton("PLAY");

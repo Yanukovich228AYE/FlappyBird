@@ -1,10 +1,13 @@
+import javax.sound.sampled.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.URL;
 
 public class GamePanel extends JPanel implements ActionListener, KeyListener {
@@ -232,13 +235,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         timer.start();
     }
 
-    public Pipe getClosestPipe() {
-        Pipe closest = pipes[0];
-        for (Pipe pipe : pipes)
-            if (pipe.getX() < closest.getX())
-                closest = pipe;
-        return closest;
-    }
+    // can implement playSound method
 
     @Override
     public void addNotify() {
@@ -255,6 +252,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             if (!isRunning)
                 isRunning = true;
             birdVelocity = -15;
+            // add playSound if implemented
         }
     }
 
