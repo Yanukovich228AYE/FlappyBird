@@ -137,8 +137,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             birdVelocity += gravity;
             birdY += birdVelocity;
         } else {
-            pointCount = 0;
-            game.points.setText("" + pointCount);
+            game.showMenu();
         }
 
         // updates every active pipe
@@ -207,6 +206,32 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         repaint();
     }
 
+    public void playSound(String path) {
+        try {
+            File file = new File(path);
+            if (!file.exists()) {
+                System.out.println("File not found: " + path);
+                return;
+            }
+
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(file);
+
+            Clip clip = AudioSystem.getClip();
+            clip.open(AudioSystem.getAudioInputStream(new File(path)));
+            clip.start();
+        } catch (UnsupportedAudioFileException e) {
+            System.err.println("Unsupported audio format: " + path);
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.err.println("Error reading audio file: " + path);
+            e.printStackTrace();
+        } catch (LineUnavailableException e) {
+            System.err.println("Audio line unavailable: " + path);
+            e.printStackTrace();
+        }
+    }
+
+
     public void restartGame() {
         // Reset bird position and velocity
         this.birdY = getHeight() / 2 - birdFrames[0].getHeight(null) / 2;
@@ -228,7 +253,9 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         this.lastPipeSpawnedTime = System.currentTimeMillis();
 
         // Re-initialize game state
-        this.isRunning = false;
+        pointCount = 0;
+        game.points.setText("" + pointCount);
+        this.isRunning = true;
         this.initialized = false;
 
         // Start the timer again
@@ -253,6 +280,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 isRunning = true;
             birdVelocity = -15;
             // add playSound if implemented
+            playSound("C:\\Users\\nikita.kuzmin_studen\\IdeaProjects\\FlappyBird\\src\\resources\\Audio\\sfx_wing.wav");
         }
     }
 

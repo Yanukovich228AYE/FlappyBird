@@ -11,6 +11,7 @@ public class Game implements ActionListener {
     GamePanel gamePanel; // game panel
     JLabel points;
 
+    String[] themes;
     JComboBox<String> themeDropDownMenu;
 
     public Game() {
@@ -24,8 +25,8 @@ public class Game implements ActionListener {
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
 
-        String[] themes = {"LIGHT", "DARK", "HELL"};
-        JComboBox<String> themeDropDownMenu = new JComboBox<String>(themes);
+        themes = new String[]{"LIGHT", "DARK", "HELL"};
+        themeDropDownMenu = new JComboBox<String>(themes);
 
         JPanel menuPanel = createMenuPanel(); // TODO
 
@@ -90,13 +91,10 @@ public class Game implements ActionListener {
         startButton.setBackground(Color.WHITE);
         startButton.setFont(new Font("Arial", Font.PLAIN, 24));
         startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        startButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                cardLayout.show(cardPanel, "Game"); // Switch to the game panel
-                gamePanel.restartGame(); // Restart the game
-                gamePanel.requestFocusInWindow(); // Ensure the game panel has focus
-            }
+        startButton.addActionListener(e -> {
+            cardLayout.show(cardPanel, "Game"); // Switch to the game panel
+            gamePanel.restartGame(); // Restart the game
+            gamePanel.requestFocusInWindow(); // Ensure the game panel has focus
         });
         return startButton;
     }
