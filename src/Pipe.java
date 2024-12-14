@@ -5,7 +5,7 @@ public class Pipe {
     int y1, y2, height1, height2;
     boolean active, pointAwarded;
 
-    public Pipe(int x, int width, int frameIndex) {
+    public Pipe(int x, int width, int windowHeight, int frameIndex) {
         this.x = x;
         this.distance = 240;
         this.y1 = 0;
@@ -18,6 +18,8 @@ public class Pipe {
             case 4: { this.y2 = 400+distance; break; }
         }
 
+        this.height1 = y2-distance;
+        this.height2 = windowHeight-height1-distance;
         this.width = width;
         this.active = false;
         this.pointAwarded = false;

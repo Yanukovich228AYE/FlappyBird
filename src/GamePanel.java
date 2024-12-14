@@ -17,7 +17,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private int birdFrame, pipeFrame, lastSpawnedPipe;
     private long lastAnimationTime, lastPipeSpawnedTime; // saving last frame change time
     private int birdVelocity = 0, pointCount = 0;
-    private boolean initialized = false, isRunning = false; // solving the problem with background movement in the start of the game
+    private boolean isRunning = false; // solving the problem with background movement in the start of the game
 
     private final Image[] birdFrames; // bird frames for animation
     private final Image[] pipeFrames; // pipe images
@@ -43,11 +43,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         };
         int pipeWidth = pipeFrames[0].getWidth(null);
         this.pipes = new Pipe[] {
-                new Pipe(game.getWidth(), pipeWidth, 0),
-                new Pipe(game.getWidth(), pipeWidth, 1),
-                new Pipe(game.getWidth(), pipeWidth, 2),
-                new Pipe(game.getWidth(), pipeWidth, 3),
-                new Pipe(game.getWidth(), pipeWidth, 4)
+                new Pipe(game.getWidth(), pipeWidth, game.getHeight(), 0),
+                new Pipe(game.getWidth(), pipeWidth,game.getHeight(), 1),
+                new Pipe(game.getWidth(), pipeWidth,game.getHeight(), 2),
+                new Pipe(game.getWidth(), pipeWidth,game.getHeight(), 3),
+                new Pipe(game.getWidth(), pipeWidth,game.getHeight(), 4)
         };
         loadSound(wingClip, "src\\resources\\Audio\\sfx_wing.wav");
         this.ground1 = loadImg("resources\\Ground\\ground.png");
@@ -56,6 +56,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         setFocusable(true);
         addKeyListener(this);
+
+        this.x1 = 0;
+        this.x2 = game.getWidth();
+        this.birdY = game.getHeight()/2-birdFrames[0].getHeight(null)/2;
+        this.birdFrame = 0;
+        this.pipeFrame = 0;
 
         this.lastSpawnedPipe = 0;
         this.lastAnimationTime = System.currentTimeMillis();
@@ -75,22 +81,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-
-        if (!initialized) {
-            this.x1 = 0;
-            this.x2 = getWidth();
-            this.birdY = getHeight()/2-birdFrames[0].getHeight(null)/2;
-            this.birdFrame = 0;
-            this.pipeFrame = 0;
-
-            for (Pipe pipe : pipes) {
-                pipe.setX(getWidth());
-                pipe.setHeight1(pipe.getY2()-pipe.distance);
-                pipe.setHeight2(getHeight()-pipe.getHeight1()-pipe.distance);
-                pipe.setActive(false);
-            }
-            this.initialized = true;
-        }
 
         // still background
         g.drawImage(bg1, 0, 0, getWidth(), getHeight(), null);
@@ -286,7 +276,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         pointCount = 0;
         game.points.setText("" + pointCount);
         this.isRunning = true;
-        this.initialized = false;
 
         // Start the timer again
         timer.start();
