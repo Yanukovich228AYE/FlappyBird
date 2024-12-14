@@ -3,8 +3,7 @@ import java.awt.*;
 public class Pipe {
     int x, width, frameIndex, distance;
     int y1, y2, height1, height2;
-    Rectangle upper, lower;
-    boolean active;
+    boolean active, pointAwarded;
 
     public Pipe(int x, int width, int frameIndex) {
         this.x = x;
@@ -21,6 +20,7 @@ public class Pipe {
 
         this.width = width;
         this.active = false;
+        this.pointAwarded = false;
         this.frameIndex = frameIndex;
     }
 
