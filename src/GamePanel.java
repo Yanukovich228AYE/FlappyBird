@@ -27,8 +27,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private final Image bg1; // 2 equal backgrounds for movement animation
     private final Image ground1, ground2; // 2 equal grounds for movement animation
 
-
-
     public GamePanel(Game game) {
         this.game = game;
         timer = new Timer(16, this); // actionPerformed method will be responsible for updating panel every 20ms

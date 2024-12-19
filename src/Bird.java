@@ -10,8 +10,6 @@ public class Bird {
         this.velocity = 0;
     }
 
-
-
     public int getY() { return this.y; }
     public int getX() { return this.x; }
     public int getWidth() { return this.width; }
