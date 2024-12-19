@@ -13,12 +13,13 @@ import java.net.URL;
 public class GamePanel extends JPanel implements ActionListener, KeyListener {
     Game game;
     Timer timer;
-    private int  birdY, x1, x2; // x1, x2 used for animating the movement of the background and ground
+    private int x1, x2; // x1, x2 used for animating the movement of the background and ground
     private int birdFrame, pipeFrame, lastSpawnedPipe;
     private long lastAnimationTime, lastPipeSpawnedTime; // saving last frame change time
-    private int birdVelocity = 0, pointCount = 0;
+    private int pointCount = 0;
     private boolean isRunning = false; // solving the problem with background movement in the start of the game
 
+    private Bird bird;
     private final Image[] birdFrames; // bird frames for animation
     private final Image[] pipeFrames; // pipe images
     private final Pipe[] pipes; // pipe rectangle value holders
@@ -28,7 +29,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     public GamePanel(Game game) {
         this.game = game;
-        timer = new Timer(20, this); // actionPerformed method will be responsible for updating panel every 20ms
+        timer = new Timer(16, this); // actionPerformed method will be responsible for updating panel every 20ms
         this.birdFrames = new Image[] {
                 loadImg("resources\\Bird\\birdRedUp.png"),
                 loadImg("resources\\Bird\\birdRedMiddle.png"),
@@ -57,9 +58,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         setFocusable(true);
         addKeyListener(this);
 
+        bird = new Bird(game.getHeight(), birdFrames[0].getWidth(null), birdFrames[0].getHeight(null), game.getHeight()/2-birdFrames[0].getHeight(null)/2, game.getWidth()/2-birdFrames[0].getWidth(null)/2);
         this.x1 = 0;
         this.x2 = game.getWidth();
-        this.birdY = game.getHeight()/2-birdFrames[0].getHeight(null)/2;
+        this.bird.setY(game.getHeight()/2-birdFrames[0].getHeight(null)/2);
         this.birdFrame = 0;
         this.pipeFrame = 0;
 
@@ -90,9 +92,9 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 //        g.drawImage(bg2, x2, 0, getWidth(), getHeight(), null);
 
         // draw bird
-        Rectangle birdRect = new Rectangle(getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null));
-        g.drawImage(birdFrames[birdFrame], getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null), null);
-        //g.drawRect(getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null));
+        Rectangle birdRect = new Rectangle(bird.getX(), bird.getY(), bird.getWidth(), bird.getHeight());
+        g.drawImage(birdFrames[birdFrame], bird.getX(), bird.getY(), birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null), null);
+        //g.drawRect(getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, bird.getY(), birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null));
 
 
 
@@ -117,11 +119,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     @Override
     public void actionPerformed(ActionEvent e) { // method that is responsible for updating the game periodically (updating frames)
-        int gravity = 2;
+        int gravity = 1;
 
         if (isRunning) {
-            birdVelocity += gravity;
-            birdY += birdVelocity;
+            bird.setVelocity(bird.getVelocity()+gravity);
+            bird.setY(bird.getY()+bird.getVelocity());
         }
 
         // updates every active pipe
@@ -174,17 +176,17 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             lastPipeSpawnedTime = currentTime;
         }
 
-        if (birdY >= getHeight()-birdFrames[birdFrame].getHeight(null)-ground1.getHeight(null)) {
-            birdY = getHeight() - birdFrames[birdFrame].getHeight(null) - ground1.getHeight(null);
-            birdVelocity = 0;
+        if (bird.getY() >= getHeight()-birdFrames[birdFrame].getHeight(null)-ground1.getHeight(null)) {
+            bird.setY(getHeight() - birdFrames[birdFrame].getHeight(null) - ground1.getHeight(null));
+            bird.setVelocity(0);
             isRunning = false;
             timer.stop();
         }
 
         // prevent bird from going out of the top of the screen\
-        if (birdY <= 0) {
-            birdY = 0;
-            birdVelocity = 0;
+        if (bird.getY() <= 0) {
+            bird.setY(0);
+            bird.setVelocity(0);
         }
 
         repaint();
@@ -254,8 +256,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     public void restartGame() {
         // Reset bird position and velocity
-        this.birdY = getHeight() / 2 - birdFrames[0].getHeight(null) / 2;
-        this.birdVelocity = 0;
+        this.bird.setY(getHeight() / 2 - birdFrames[0].getHeight(null) / 2);
+        this.bird.setVelocity(0);
 
         // Reset pipes
         for (Pipe pipe : pipes) {
@@ -297,7 +299,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 isRunning = true;
                 restartGame();
             }
-            birdVelocity = -15;
+            bird.setVelocity(-15);
 
             if (wingClip != null) {
                 if (wingClip.isRunning()) {
