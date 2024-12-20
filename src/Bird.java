@@ -1,7 +1,7 @@
 public class Bird {
     int x, y, velocity;
     int width, height;
-    NeuralNetwork brain;
+    NeuralNetwork brain; // The bird's "brain"
 
     public Bird(int windowHeight, int width, int height, int y, int x) {
         this.width = width;
@@ -9,13 +9,14 @@ public class Bird {
         this.y = y;
         this.x = x;
         this.velocity = 0;
-
-        this.brain = new NeuralNetwork(4); // 4 input variables
+        // Initialize the brain with the desired architecture (e.g. 4 inputs, 5 hidden, 1 output)
+        this.brain = new NeuralNetwork(4, 5, 1);
     }
 
-    public boolean shouldFlap(double birdY, double birdVelocity, double closestPipeDist, double pipeGapY) {
-        double inputs[] = {birdY, birdVelocity, closestPipeDist, pipeGapY}; // insert inputs of the bird
-        double output = brain.feed(inputs); // feed inputs
+    // Decide whether to flap or not, based on inputs
+    public boolean shouldFlap(double birdY, double birdVel, double nextPipeDist, double pipeGapY) {
+        double[] inputs = {birdY, birdVel, nextPipeDist, pipeGapY};
+        double output = brain.feedForward(inputs);
         return output > 0.5;
     }
 
