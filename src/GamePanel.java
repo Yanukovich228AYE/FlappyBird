@@ -103,7 +103,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         Pipe closestPipe = null;
         int closestX = Integer.MAX_VALUE;
         for (Pipe pipe : pipes) {
-            if (pipe.active && (pipe.getX() - birdX) < closestX && pipe.getX() > birdX) {
+            if (pipe.active && pipe.getX()+pipe.getWidth() > birdX && pipe.getX() - birdX < closestX) {
                 closestX = pipe.getX();
                 closestPipe = pipe;
             }
@@ -158,12 +158,22 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             x2 = x1 + getWidth();
 
         if (isRunning) {
-            // Gravity and Bird Movement
-            Pipe closestPipe = getClosestPipe(bird.getX());
-
             bird.setVelocity(bird.getVelocity() + GRAVITY);
             bird.setY(bird.getY() + bird.getVelocity());
 
+            Pipe closestPipe = getClosestPipe(bird.getX());
+            if (closestPipe != null) {
+                double birdY = bird.getY() / (double) getHeight();
+                double birdVel = bird.getVelocity() / 20.0;
+                double closestPipeDist = (closestPipe.getX() - bird.getX()) / (double) getWidth();
+                double gapCenter = ((closestPipe.getY2() - closestPipe.getHeight1()) / 2.0) + (double) closestPipe.getHeight1();
+                double pipeGapY = gapCenter / (double) getHeight();
+
+                boolean flap = bird.shouldFlap(birdY, birdVel, closestPipeDist, pipeGapY);
+                if (flap) {
+                    bird.setVelocity(BIRD_JUMP_VELOCITY);
+                }
+            }
 
             // Move pipes
             for (Pipe pipe : pipes) {
