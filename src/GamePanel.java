@@ -11,21 +11,31 @@ import java.io.IOException;
 import java.net.URL;
 
 public class GamePanel extends JPanel implements ActionListener, KeyListener {
-    Game game;
-    Timer timer;
-    private int x1, x2; // x1, x2 used for animating the movement of the background and ground
-    private int birdFrame, pipeFrame, lastSpawnedPipe;
-    private long lastAnimationTime, lastPipeSpawnedTime; // saving last frame change time
+    private final Game game;
+    private final Timer timer;
+    private int x1, x2; // For animating the background and ground
+    private int birdFrame, pipeFrame;
+    private int lastSpawnedPipe;
+    private long lastAnimationTime, lastPipeSpawnedTime;
     private int pointCount = 0;
-    private boolean isRunning = false; // solving the problem with background movement in the start of the game
+    private boolean isRunning = false;
 
     private Bird bird;
-    private final Image[] birdFrames; // bird frames for animation
-    private final Image[] pipeFrames; // pipe images
-    private final Pipe[] pipes; // pipe rectangle value holders
+    public Bird[] population;
+    private final Image[] birdFrames;
+    private final Image[] pipeFrames;
+    private final Pipe[] pipes;
     private Clip wingClip;
-    private final Image bg1; // 2 equal backgrounds for movement animation
-    private final Image ground1, ground2; // 2 equal grounds for movement animation
+    private final Image bg1;
+    private final Image ground1, ground2;
+
+    // Constants for game mechanics
+    private static final int GRAVITY = 1;
+    private static final int BIRD_JUMP_VELOCITY = -15;
+    private static final int GAME_VELOCITY = 4;
+    private static final int BIRD_ANIMATION_INTERVAL = 100;
+    private static final int PIPE_SPAWN_INTERVAL = 2600; // in ms, can be adjusted
+    private static final int POPULATION_SIZE = 20;
 
     public GamePanel(Game game) {
         this.game = game;
@@ -50,15 +60,32 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 new Pipe(game.getWidth(), pipeWidth,game.getHeight(), 3),
                 new Pipe(game.getWidth(), pipeWidth,game.getHeight(), 4)
         };
-        loadSound(wingClip, "src\\resources\\Audio\\sfx_wing.wav");
-        this.ground1 = loadImg("resources\\Ground\\ground.png");
-        this.ground2 = loadImg("resources\\Ground\\ground.png");
-        this.bg1 = loadImg("resources\\Background\\bgLight.png");
+        this.bird = new Bird(
+                game.getHeight(),
+                birdFrames[0].getWidth(null),
+                birdFrames[0].getHeight(null),
+                game.getHeight()/2 - birdFrames[0].getHeight(null)/2,
+                game.getWidth()/2 - birdFrames[0].getWidth(null)/2
+        );
+        this.population = new Bird[POPULATION_SIZE];
+        for (int i = 0; i < POPULATION_SIZE; i++) {
+            population[i] = new Bird(
+                    game.getHeight(),
+                    birdFrames[0].getWidth(null),
+                    birdFrames[0].getHeight(null),
+                    game.getHeight()/2 - birdFrames[0].getHeight(null)/2,
+                    game.getWidth()/2 - birdFrames[0].getWidth(null)/2
+            );
+        }
+
+        this.wingClip = loadSound("src/resources/Audio/sfx_wing.wav");
+        this.ground1 = loadImg("resources/Ground/ground.png");
+        this.ground2 = loadImg("resources/Ground/ground.png");
+        this.bg1 = loadImg("resources/Background/bgLight.png");
 
         setFocusable(true);
         addKeyListener(this);
 
-        bird = new Bird(game.getHeight(), birdFrames[0].getWidth(null), birdFrames[0].getHeight(null), game.getHeight()/2-birdFrames[0].getHeight(null)/2, game.getWidth()/2-birdFrames[0].getWidth(null)/2);
         this.x1 = 0;
         this.x2 = game.getWidth();
         this.bird.setY(game.getHeight()/2-birdFrames[0].getHeight(null)/2);
@@ -72,172 +99,141 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     }
 
     // TODO
-//    public Pipe getClosestPipe() {
-//        int closestY;
-//        for (Pipe pipe : pipes) {
-//            int temp = pipe.getY1();
-//            if ()
-//        }
-//    }
+    private Pipe getClosestPipe(int birdX) {
+        Pipe closestPipe = null;
+        int closestX = Integer.MAX_VALUE;
+        for (Pipe pipe : pipes) {
+            if (pipe.active && (pipe.getX() - birdX) < closestX && pipe.getX() > birdX) {
+                closestX = pipe.getX();
+                closestPipe = pipe;
+            }
+        }
+        return closestPipe;
+    }
 
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        // still background
+        // Draw background
         g.drawImage(bg1, 0, 0, getWidth(), getHeight(), null);
 
-        // moving background
-//        g.drawImage(bg1, x1, 0, getWidth(), getHeight(), null);
-//        g.drawImage(bg2, x2, 0, getWidth(), getHeight(), null);
-
-        // draw bird
+        // Bird
         Rectangle birdRect = new Rectangle(bird.getX(), bird.getY(), bird.getWidth(), bird.getHeight());
-        g.drawImage(birdFrames[birdFrame], bird.getX(), bird.getY(), birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null), null);
-        //g.drawRect(getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, bird.getY(), birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null));
+        g.drawImage(birdFrames[birdFrame], bird.getX(), bird.getY(), null);
 
-
-
+        // Pipes
         for (Pipe pipe : pipes) {
             if (pipe.active) {
                 g.drawImage(pipeFrames[pipe.getFrameIndex()], pipe.getX(), pipe.getY1(), pipe.getWidth(), getHeight(), null);
-                //g.drawRect(pipe.getX(), pipe.getY1(), pipe.getWidth(), pipe.getHeight1()); // rect 1
-                //g.drawRect(pipe.getX(), pipe.getY2(), pipe.getWidth(), pipe.getHeight2()); // rect 2
-                if (birdRect.intersects(pipe.getUpper()) || birdRect.intersects(pipe.getLower())) { // check bird intersection with pipe
+
+                // Collision check
+                if (birdRect.intersects(pipe.getUpper()) || birdRect.intersects(pipe.getLower())) {
                     isRunning = false;
                     timer.stop();
-                } else if (birdRect.intersects(pipe.getX()+pipe.getWidth(), pipe.getHeight1(), pipe.getX()+pipe.getWidth(), pipe.getY2()) && !pipe.pointAwarded) { // if intersects the line right after the pipe +1 point
-                    game.points.setText("" + ++pointCount);
+                }
+
+                // Scoring: If bird passes the pipe
+                if (!pipe.pointAwarded && bird.getX() > pipe.getX() + pipe.getWidth()) {
+                    game.points.setText(String.valueOf(++pointCount));
                     pipe.pointAwarded = true;
                 }
             }
         }
 
+        // Ground
         g.drawImage(ground1, x1, getHeight()-ground1.getHeight(null), getWidth(), ground1.getHeight(null), null);
         g.drawImage(ground2, x2, getHeight()-ground2.getHeight(null), getWidth(), ground2.getHeight(null), null);
     }
 
+    // method that is responsible for updating the game periodically (updating frames)
     @Override
-    public void actionPerformed(ActionEvent e) { // method that is responsible for updating the game periodically (updating frames)
-        int gravity = 1;
+    public void actionPerformed(ActionEvent e) {
+        x1 -= GAME_VELOCITY;
+        x2 -= GAME_VELOCITY;
 
-        if (isRunning) {
-            bird.setVelocity(bird.getVelocity()+gravity);
-            bird.setY(bird.getY()+bird.getVelocity());
-        }
-
-        // updates every active pipe
-        long gameVelocity = 4;
-        for (Pipe pipe : pipes) {
-            if (pipe.active) {
-                pipe.moveLeft((int) gameVelocity);
-                if (pipe.getX() <= -pipe.getWidth()) { // if pipe is out of the screen
-                    pipe.setActive(false); // deactivate pipe
-                    pipe.pointAwarded = false;
-                    pipe.setX(getWidth()); // reset position
-                    System.out.println("Pipe deactivated: " + pipe);
-                }
-            }
-        }
-
-        x1 -= (int)gameVelocity;
-        x2 -= (int)gameVelocity;
-
-        if (x1 <= -getWidth()) // controlling background and ground movement
+        if (x1 <= -getWidth())
             x1 = x2 + getWidth();
         if (x2 <= -getWidth())
             x2 = x1 + getWidth();
 
-        if (pipes[pipeFrame].getX() <= -pipes[pipeFrame].getWidth()) {
-            pipes[pipeFrame].setX(getWidth());
-        }
+        if (isRunning) {
+            // Gravity and Bird Movement
+            Pipe closestPipe = getClosestPipe(bird.getX());
 
-        long currentTime = System.currentTimeMillis();
-        if (currentTime - lastAnimationTime > 100) { // changes bird frame every specified interval of time
-            if (birdFrame >= 2)
-                birdFrame = 0;
-            else
-                birdFrame++;
-            lastAnimationTime = currentTime;
-        }
+            bird.setVelocity(bird.getVelocity() + GRAVITY);
+            bird.setY(bird.getY() + bird.getVelocity());
 
-        // Spawn new random pipe every specified interval of time
-        if (currentTime - lastPipeSpawnedTime > (gameVelocity *1000- gameVelocity *350) && isRunning) {
-            int randPipe;
-            while (true) {
-                randPipe = (int) (Math.random() * pipes.length); // get random pipe
-                if (randPipe != lastSpawnedPipe && !pipes[randPipe].active) { // check if the pipe is already spawned
-                    pipes[randPipe].setActive(true);
-                    lastSpawnedPipe = randPipe;
-                    System.out.println("Pipe activated: " + lastSpawnedPipe);
-                    break;
+
+            // Move pipes
+            for (Pipe pipe : pipes) {
+                if (pipe.active) {
+                    pipe.moveLeft(GAME_VELOCITY);
+                    if (pipe.getX() <= -pipe.getWidth()) {
+                        pipe.setActive(false);
+                        pipe.pointAwarded = false;
+                        pipe.setX(getWidth());
+                    }
                 }
             }
-            lastPipeSpawnedTime = currentTime;
-        }
 
-        if (bird.getY() >= getHeight()-birdFrames[birdFrame].getHeight(null)-ground1.getHeight(null)) {
-            bird.setY(getHeight() - birdFrames[birdFrame].getHeight(null) - ground1.getHeight(null));
-            bird.setVelocity(0);
-            isRunning = false;
-            timer.stop();
-        }
+            long currentTime = System.currentTimeMillis();
+            // Bird animation frame change
+            if (currentTime - lastAnimationTime > BIRD_ANIMATION_INTERVAL) {
+                birdFrame = (birdFrame + 1) % birdFrames.length;
+                lastAnimationTime = currentTime;
+            }
 
-        // prevent bird from going out of the top of the screen\
-        if (bird.getY() <= 0) {
-            bird.setY(0);
-            bird.setVelocity(0);
+            // Spawn new pipes
+            if (currentTime - lastPipeSpawnedTime > PIPE_SPAWN_INTERVAL) {
+                spawnRandomPipe();
+                lastPipeSpawnedTime = currentTime;
+            }
+
+            // Check floor collision
+            if (bird.getY() >= getHeight() - birdFrames[birdFrame].getHeight(null) - ground1.getHeight(null)) {
+                bird.setY(getHeight() - birdFrames[birdFrame].getHeight(null) - ground1.getHeight(null));
+                bird.setVelocity(0);
+                isRunning = false;
+                timer.stop();
+            }
+
+            // Prevent going above the top
+            if (bird.getY() <= 0) {
+                bird.setY(0);
+                bird.setVelocity(0);
+            }
         }
 
         repaint();
     }
 
-    public void playSound(String path) {
-        try {
-            File file = new File(path);
-            if (!file.exists()) {
-                System.out.println("File not found: " + path);
-                return;
+    private void spawnRandomPipe() {
+        while (true) {
+            int randPipe = (int) (Math.random() * pipes.length);
+            if (randPipe != lastSpawnedPipe && !pipes[randPipe].active) {
+                pipes[randPipe].setActive(true);
+                lastSpawnedPipe = randPipe;
+                break;
             }
-
-            AudioInputStream audioStream = AudioSystem.getAudioInputStream(file);
-
-            Clip clip = AudioSystem.getClip();
-            clip.open(AudioSystem.getAudioInputStream(new File(path)));
-            clip.start();
-        } catch (UnsupportedAudioFileException e) {
-            System.err.println("Unsupported audio format: " + path);
-            e.printStackTrace();
-        } catch (IOException e) {
-            System.err.println("Error reading audio file: " + path);
-            e.printStackTrace();
-        } catch (LineUnavailableException e) {
-            System.err.println("Audio line unavailable: " + path);
-            e.printStackTrace();
         }
     }
 
-    private void loadSound(Clip clip, String path) {
+    private Clip loadSound(String path) {
         try {
             File file = new File(path);
             if (!file.exists()) {
                 System.out.println("File not found: " + path);
-                return;
+                return null;
             }
-
             AudioInputStream audioStream = AudioSystem.getAudioInputStream(file);
-
-            clip = AudioSystem.getClip();
-            clip.open(AudioSystem.getAudioInputStream(new File(path)));
-        } catch (UnsupportedAudioFileException e) {
-            System.err.println("Unsupported audio format: " + path);
+            Clip c = AudioSystem.getClip();
+            c.open(audioStream);
+            return c;
+        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
+            System.err.println("Error loading sound: " + path);
             e.printStackTrace();
-        } catch (IOException e) {
-            System.err.println("Error reading audio file: " + path);
-            e.printStackTrace();
-        } catch (LineUnavailableException e) {
-            System.err.println("Audio line unavailable: " + path);
-            e.printStackTrace();
+            return null;
         }
     }
 
@@ -263,23 +259,20 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         for (Pipe pipe : pipes) {
             pipe.setX(getWidth());
             pipe.setActive(false);
+            pipe.pointAwarded = false;
         }
 
         // Reset movement variables
-        this.x1 = 0;
-        this.x2 = getWidth();
-        this.birdFrame = 0;
-        this.pipeFrame = 0;
-        this.lastSpawnedPipe = 0;
-        this.lastAnimationTime = System.currentTimeMillis();
-        this.lastPipeSpawnedTime = System.currentTimeMillis();
-
-        // Re-initialize game state
+        x1 = 0;
+        x2 = getWidth();
+        birdFrame = 0;
+        lastSpawnedPipe = 0;
+        lastAnimationTime = System.currentTimeMillis();
+        lastPipeSpawnedTime = System.currentTimeMillis();
         pointCount = 0;
-        game.points.setText("" + pointCount);
-        this.isRunning = true;
+        game.points.setText(String.valueOf(pointCount));
+        isRunning = true;
 
-        // Start the timer again
         timer.start();
     }
 
@@ -298,16 +291,9 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             if (!isRunning) {
                 isRunning = true;
                 restartGame();
+                bird.setVelocity(BIRD_JUMP_VELOCITY);
             }
-            bird.setVelocity(-15);
-
-            if (wingClip != null) {
-                if (wingClip.isRunning()) {
-                    wingClip.stop();
-                }
-                wingClip.setFramePosition(0);
-                wingClip.start();
-            }
+            bird.setVelocity(BIRD_JUMP_VELOCITY);
         }
     }
 
