@@ -4,58 +4,96 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.image.BufferedImage;
 import java.io.FileNotFoundException;
 import java.net.URL;
 
 public class GamePanel extends JPanel implements ActionListener, KeyListener {
-    Timer timer;
-    private int  birdY, x1, x2; // x1, x2 used for animating the movement of the background and ground
-    private int birdFrame, pipeFrame, lastSpawnedPipe;
-    private long lastAnimationTime, lastPipeSpawnedTime; // saving last frame change time
-    private int birdVelocity = 0;
-    private boolean initialized = false; // solving the problem with background movement in the start of the game
+    private final Game game;
+    private final Timer timer;
+    private int x1, x2; // For animating the background and ground
+    private int birdFrame, pipeFrame;
+    private int lastSpawnedPipe;
+    private long lastAnimationTime, lastPipeSpawnedTime;
+    private int pointCount = 0;
+    private boolean isRunning = false;
 
-    private final Image[] birdFrames; // bird frames for animation
-    private final Image[] pipeFrames; // pipe images
-    private final Pipe[] pipes; // pipe rectangle value holders
-    private final Image bg1, bg2; // 2 equal backgrounds for movement animation
-    private final Image ground1, ground2; // 2 equal grounds for movement animation
+    private Bird bird;
+    private final Image[] birdFrames;
+    private final Image[] pipeFrames;
+    private final Pipe[] pipes;
+    private final Image bg1;
+    private final Image ground1, ground2;
 
-    public GamePanel() {
-        timer = new Timer(20, this); // actionPerformed method will be responsible for updating panel every 20ms
+    // Constants for game mechanics
+    private static final int GRAVITY = 1;
+    private static final int BIRD_JUMP_VELOCITY = -15;
+    private static final int GAME_VELOCITY = 4;
+    private static final int BIRD_ANIMATION_INTERVAL = 100;
+    private static final int PIPE_SPAWN_INTERVAL = 2600; // in ms, can be adjusted
+
+
+    public GamePanel(Game game) {
+        this.game = game;
+        timer = new Timer(16, this); // actionPerformed method will be responsible for updating panel every 20ms
         this.birdFrames = new Image[] {
-                loadImg("resources\\Bird\\birdRedUp.png"),
-                loadImg("resources\\Bird\\birdRedMiddle.png"),
-                loadImg("resources\\Bird\\birdRedDown.png")
+                loadImg("resources/Bird/birdRedUp.png"),
+                loadImg("resources/Bird/birdRedMiddle.png"),
+                loadImg("resources/Bird/birdRedDown.png")
         };
+        /* uncomment this and comment above to have bird with balls
+        this.birdFrames = new Image[] {
+                scaleImage(loadImg("resources/Bird/bird.jpeg"), 50, 50),
+                scaleImage(loadImg("resources/Bird/bird.jpeg"), 50, 50),
+                scaleImage(loadImg("resources/Bird/bird.jpeg"), 50, 50)
+        };
+        */
+
         this.pipeFrames = new Image[] {
-                loadImg("resources\\Pipe\\pipeUp.png"),
-                loadImg("resources\\Pipe\\pipeMiddleUp.png"),
-                loadImg("resources\\Pipe\\pipeMiddle.png"),
-                loadImg("resources\\Pipe\\pipeMiddleLow.png"),
-                loadImg("resources\\Pipe\\pipeLow.png")
+                loadImg("resources/Pipe/pipeUp.png"),
+                loadImg("resources/Pipe/pipeMiddleUp.png"),
+                loadImg("resources/Pipe/pipeMiddle.png"),
+                loadImg("resources/Pipe/pipeMiddleLow.png"),
+                loadImg("resources/Pipe/pipeLow.png")
         };
         int pipeWidth = pipeFrames[0].getWidth(null);
         this.pipes = new Pipe[] {
-                new Pipe(getWidth(), pipeWidth, 0),
-                new Pipe(getWidth(), pipeWidth, 1),
-                new Pipe(getWidth(), pipeWidth, 2),
-                new Pipe(getWidth(), pipeWidth, 3),
-                new Pipe(getWidth(), pipeWidth, 4)
+                new Pipe(game.getWidth(), pipeWidth, game.getHeight(), 0),
+                new Pipe(game.getWidth(), pipeWidth, game.getHeight(), 1),
+                new Pipe(game.getWidth(), pipeWidth, game.getHeight(), 2),
+                new Pipe(game.getWidth(), pipeWidth, game.getHeight(), 3),
+                new Pipe(game.getWidth(), pipeWidth, game.getHeight(), 4)
         };
-        this.ground1 = loadImg("resources\\Ground\\ground.png");
-        this.ground2 = loadImg("resources\\Ground\\ground.png");
-        this.bg1 = loadImg("resources\\Background\\bgLight.png");
-        this.bg2 = loadImg("resources\\Background\\bgLight.png");
+        bird = new Bird(game.getWidth()/2, game.getHeight()/2, 50, 50);
+        birdFrame = 0;
+
+        this.ground1 = loadImg("resources/Ground/ground.png");
+        this.ground2 = loadImg("resources/Ground/ground.png");
+        this.bg1 = loadImg("resources/Background/bgLight.png");
 
         setFocusable(true);
         addKeyListener(this);
 
+        this.x1 = 0;
+        this.x2 = game.width;
+        this.pipeFrame = 0;
         this.lastSpawnedPipe = 0;
         this.lastAnimationTime = System.currentTimeMillis();
         this.lastPipeSpawnedTime = System.currentTimeMillis();
         timer.start();
     }
+
+
+    private Image scaleImage(Image original, int width, int height) {
+        // Create a buffered image with transparency
+        BufferedImage scaled = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        // Draw the scaled image
+        Graphics2D g2d = scaled.createGraphics();
+        g2d.drawImage(original, 0, 0, width, height, null);
+        g2d.dispose();
+        return scaled;
+    }
+
 
     private Image loadImg(String path) {
         try {
@@ -74,80 +112,87 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        if (!initialized) {
-            this.x1 = 0;
-            this.x2 = getWidth();
-            this.birdY = getHeight()/2-birdFrames[0].getHeight(null)/2;
-            this.birdFrame = 0;
-            this.pipeFrame = 0;
-
-            for (Pipe pipe : pipes) {
-                pipe.setX(getWidth());
-                pipe.setHeight1(pipe.getY2()-pipe.distance);
-                pipe.setHeight2(getHeight()-pipe.getHeight1()-pipe.distance);
-                pipe.setActive(false);
-            }
-            this.initialized = true;
-        }
-
         // still background
         g.drawImage(bg1, 0, 0, getWidth(), getHeight(), null);
 
-        // moving background
-//        g.drawImage(bg1, x1, 0, getWidth(), getHeight(), null);
-//        g.drawImage(bg2, x2, 0, getWidth(), getHeight(), null);
-
         // draw bird
-        Rectangle birdRect = new Rectangle(getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null));
-        g.drawImage(birdFrames[birdFrame], getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null), null);
-        //g.drawRect(getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, birdY, birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null));
+        Rectangle birdRect = new Rectangle(getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, bird.getY(), birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null));
+        g.drawImage(birdFrames[birdFrame], getWidth()/2-birdFrames[birdFrame].getWidth(null)/2, bird.getY(), birdFrames[birdFrame].getWidth(null), birdFrames[birdFrame].getHeight(null), null);
 
         for (Pipe pipe : pipes) {
             if (pipe.active) {
                 g.drawImage(pipeFrames[pipe.getFrameIndex()], pipe.getX(), pipe.getY1(), pipe.getWidth(), getHeight(), null);
-                //g.drawRect(pipe.getX(), pipe.getY1(), pipe.getWidth(), pipe.getHeight1()); // rect 1
-                //g.drawRect(pipe.getX(), pipe.getY2(), pipe.getWidth(), pipe.getHeight2()); // rect 2
+                g.drawRect(pipe.getX(), pipe.getY1(), pipe.getWidth(), pipe.getHeight1());
+                g.drawRect(pipe.getX(), pipe.getY2(), pipe.getWidth(), pipe.getHeight2());
                 if (birdRect.intersects(pipe.getUpper()) || birdRect.intersects(pipe.getLower())) // check bird intersection with pipe
-                    timer.stop();
+                    restartGame();
             }
         }
 
-        g.drawImage(ground1, x1, getHeight()-ground1.getHeight(null), getWidth(), ground1.getHeight(null), null);
-        g.drawImage(ground2, x2, getHeight()-ground2.getHeight(null), getWidth(), ground2.getHeight(null), null);
+        g.drawImage(ground1, x1, getHeight()-ground1.getHeight(null), game.getWidth(), ground1.getHeight(null), null);
+        g.drawImage(ground2, x2, getHeight()-ground2.getHeight(null), game.getWidth(), ground2.getHeight(null), null);
     }
 
+    // method that is responsible for updating the game periodically (updating frames)
     @Override
-    public void actionPerformed(ActionEvent e) { // method that is responsible for updating the game periodically (updating frames)
-        int gravity = 1;
-        birdVelocity += gravity;
-        birdY += birdVelocity;
+    public void actionPerformed(ActionEvent e) {
+        x1 -= GAME_VELOCITY;
+        x2 -= GAME_VELOCITY;
 
-        // updates every active pipe
-        long gameVelocity = 4;
-        for (Pipe pipe : pipes) {
-            if (pipe.active) {
-                pipe.moveLeft((int) gameVelocity);
-                if (pipe.getX() <= -pipe.getWidth()) { // if pipe is out of the screen
-                    pipe.setActive(false); // deactivate pipe
-                    pipe.setX(getWidth()); // reset position
-                    System.out.println("Pipe deactivated: " + pipe);
+        if (x1 <= -game.getWidth()) // controlling background and ground movement
+            x1 = x2 + getWidth();
+        if (x2 <= -game.getWidth())
+            x2 = x1 + getWidth();
+
+        long currentTime = System.currentTimeMillis();
+        if (isRunning) {
+            bird.setVelocity(bird.getVelocity()+GRAVITY);
+            bird.setY(bird.getY()+bird.getVelocity());
+
+            // updates every active pipe
+            for (Pipe pipe : pipes) {
+                if (pipe.active) {
+                    pipe.moveLeft(GAME_VELOCITY);
+
+                    if (!pipe.pointAwarded && bird.getX() > pipe.getX() + pipe.getWidth()) {
+                        pointCount++;
+                        game.pointsLabel.setText(""+pointCount);
+                        pipe.setPointAwarded(true);
+                    }
+
+                    if (pipe.getX() <= -pipe.getWidth()) { // if pipe is out of the screen
+                        pipe.setActive(false); // deactivate pipe
+                        pipe.setPointAwarded(false);
+                        pipe.setX(getWidth()); // reset position
+                        System.out.println("Pipe deactivated: " + pipe);
+                    }
                 }
+            }
+
+            // Spawn new random pipe every specified interval of time
+            if (currentTime - lastPipeSpawnedTime > (GAME_VELOCITY *1000- GAME_VELOCITY *350)) {
+                int randPipe;
+                while (true) {
+                    randPipe = (int) (Math.random() * pipes.length); // get random pipe
+                    if (randPipe != lastSpawnedPipe && !pipes[randPipe].active) { // check if the pipe is already spawned
+                        pipes[randPipe].setActive(true);
+                        lastSpawnedPipe = randPipe;
+                        System.out.println("Pipe activated: " + lastSpawnedPipe);
+                        break;
+                    }
+                }
+                lastPipeSpawnedTime = currentTime;
+            }
+
+            if (pipes[pipeFrame].getX() <= -pipes[pipeFrame].getWidth()) {
+                pipes[pipeFrame].setX(getWidth());
+            }
+
+            if (bird.getY() >= getHeight()-birdFrames[birdFrame].getHeight(null)-ground1.getHeight(null)) {
+                restartGame();
             }
         }
 
-        x1 -= (int)gameVelocity;
-        x2 -= (int)gameVelocity;
-
-        if (x1 <= -getWidth()) // controlling background and ground movement
-            x1 = x2 + getWidth();
-        if (x2 <= -getWidth())
-            x2 = x1 + getWidth();
-
-        if (pipes[pipeFrame].getX() <= -pipes[pipeFrame].getWidth()) {
-            pipes[pipeFrame].setX(getWidth());
-        }
-
-        long currentTime = System.currentTimeMillis();
         if (currentTime - lastAnimationTime > 100) { // changes bird frame every specified interval of time
             if (birdFrame >= 2)
                 birdFrame = 0;
@@ -156,27 +201,25 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             lastAnimationTime = currentTime;
         }
 
-        // Spawn new random pipe every specified interval of time
-        if (currentTime - lastPipeSpawnedTime > (gameVelocity *1000- gameVelocity *350)) {
-            int randPipe;
-            while (true) {
-                randPipe = (int) (Math.random() * pipes.length); // get random pipe
-                if (randPipe != lastSpawnedPipe && !pipes[randPipe].active) { // check if the pipe is already spawned
-                    pipes[randPipe].setActive(true);
-                    lastSpawnedPipe = randPipe;
-                    System.out.println("Pipe activated: " + lastSpawnedPipe);
-                    break;
-                }
-            }
-            lastPipeSpawnedTime = currentTime;
-        }
-
-        if (birdY >= getHeight()-birdFrames[birdFrame].getHeight(null)-ground1.getHeight(null)) {
-            birdY = getHeight() - birdFrames[birdFrame].getHeight(null) - ground1.getHeight(null);
-            birdVelocity = 0;
-        }
-
         repaint();
+    }
+
+    public void restartGame() {
+        // reset bird
+        bird.setY(game.getHeight()/2-birdFrames[0].getHeight(null)/2);
+        bird.setVelocity(0);
+
+        pointCount = 0;
+        game.pointsLabel.setText("0");
+
+        // reset pipes
+        for (Pipe pipe : pipes)
+            if (pipe.active) {
+                pipe.setX(game.getWidth());
+                pipe.setActive(false);
+            }
+
+        isRunning = false;
     }
 
     @Override
@@ -191,7 +234,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     @Override
     public void keyPressed(KeyEvent e) { // reacts when specified key is pressed
         if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-            birdVelocity = -10;
+            if (!isRunning) {
+                isRunning = true;
+            }
+            bird.setVelocity(BIRD_JUMP_VELOCITY);
         }
     }
 

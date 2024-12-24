@@ -2,25 +2,29 @@ import java.awt.*;
 
 public class Pipe {
     int x, width, frameIndex, distance;
+    double ratio;
     int y1, y2, height1, height2;
-    Rectangle upper, lower;
-    boolean active;
+    boolean active, pointAwarded;
 
-    public Pipe(int x, int width, int frameIndex) {
+    public Pipe(int x, int width, int height, int frameIndex) {
         this.x = x;
-        this.distance = 240;
+        this.ratio = (double) height / 657.0;
+        this.distance = (int) (192.0*ratio);
+        this.width = width;
         this.y1 = 0;
 
         switch (frameIndex) {
-            case 0: { this.y2 = 120+distance; break; }
-            case 1: { this.y2 = 180+distance; break; }
-            case 2: { this.y2 = 240+distance; break; }
-            case 3: { this.y2 = 330+distance; break; }
-            case 4: { this.y2 = 400+distance; break; }
+            case 0: { this.height1 = (int) (104*ratio); break; }
+            case 1: { this.height1 = (int) (172*ratio); break; }
+            case 2: { this.height1 = (int) (232*ratio); break; }
+            case 3: { this.height1 = (int) (292*ratio); break; }
+            case 4: { this.height1 = (int) (360*ratio); break; }
         }
 
-        this.width = width;
+        this.y2 = this.height1 + distance;
+        this.height2 = height - distance - height1;
         this.active = false;
+        this.pointAwarded = false;
         this.frameIndex = frameIndex;
     }
 
@@ -42,4 +46,5 @@ public class Pipe {
     public void setHeight2(int height2) { this.height2 = height2; }
     public void setX(int x) { this.x = x; }
     public void setActive(boolean value) { this.active = value; }
+    public void setPointAwarded(boolean value) { this.pointAwarded = value; }
 }
